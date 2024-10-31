@@ -251,7 +251,7 @@
 </div>
 <div class="good_result hide">
   <div class="result-container">
-    <div class="nice-try">NICE TRY!</div>
+    <div class="nice-try">YOU WIN!</div>
     <button class="continue-button">계속해서 대전</button>
   </div>
 </div>
@@ -263,8 +263,7 @@
 <canvas id="c652a4116cba4a31938e98a239d1b19b"></canvas>
 <div id="targetPokemon"></div>
 <div id="targetName"></div>
-<div class="image-grid">
-</div>
+<div class="image-grid"></div>
 </body>
 <script>
   (async function main() {
@@ -287,8 +286,240 @@
       'dragon': '드래곤',
       'dark': '악',
       'fairy': '페어리',
-      'stellar': ' 스텔라',
     };
+
+    const typeRelations = {
+      "normal": {
+        "good": [
+          "fighting"
+        ],
+        "bad": [
+          "ghost"
+        ]
+      },
+      "fighting": {
+        "good": [
+          "flying",
+          "psychic",
+          "fairy"
+        ],
+        "bad": [
+          "rock",
+          "bug",
+          "dark"
+        ]
+      },
+      "flying": {
+        "good": [
+          "rock",
+          "electric",
+          "ice"
+        ],
+        "bad": [
+          "fighting",
+          "bug",
+          "grass",
+          "ground"
+        ]
+      },
+      "poison": {
+        "good": [
+          "ground",
+          "psychic"
+        ],
+        "bad": [
+          "fighting",
+          "poison",
+          "bug",
+          "grass",
+          "fairy"
+        ]
+      },
+      "ground": {
+        "good": [
+          "water",
+          "grass",
+          "ice"
+        ],
+        "bad": [
+          "poison",
+          "rock",
+          "electric"
+        ]
+      },
+      "rock": {
+        "good": [
+          "fighting",
+          "ground",
+          "steel",
+          "water",
+          "grass"
+        ],
+        "bad": [
+          "normal",
+          "flying",
+          "poison",
+          "fire"
+        ]
+      },
+      "bug": {
+        "good": [
+          "flying",
+          "rock",
+          "fire"
+        ],
+        "bad": [
+          "fighting",
+          "ground",
+          "grass"
+        ]
+      },
+      "ghost": {
+        "good": [
+          "ghost",
+          "dark"
+        ],
+        "bad": [
+          "poison",
+          "bug",
+          "normal",
+          "fighting"
+        ]
+      },
+      "steel": {
+        "good": [
+          "fighting",
+          "ground",
+          "fire"
+        ],
+        "bad": [
+          "normal",
+          "flying",
+          "rock",
+          "bug",
+          "steel",
+          "grass",
+          "psychic",
+          "ice",
+          "dragon",
+          "fairy",
+          "poison"
+        ]
+      },
+      "fire": {
+        "good": [
+          "ground",
+          "rock",
+          "water"
+        ],
+        "bad": [
+          "bug",
+          "steel",
+          "fire",
+          "grass",
+          "ice",
+          "fairy"
+        ]
+      },
+      "water": {
+        "good": [
+          "grass",
+          "electric"
+        ],
+        "bad": [
+          "steel",
+          "fire",
+          "water",
+          "ice"
+        ]
+      },
+      "grass": {
+        "good": [
+          "flying",
+          "poison",
+          "bug",
+          "fire",
+          "ice"
+        ],
+        "bad": [
+          "ground",
+          "water",
+          "grass",
+          "electric"
+        ]
+      },
+      "electric": {
+        "good": [
+          "ground"
+        ],
+        "bad": [
+          "flying",
+          "steel",
+          "electric"
+        ]
+      },
+      "psychic": {
+        "good": [
+          "bug",
+          "ghost",
+          "dark"
+        ],
+        "bad": [
+          "fighting",
+          "psychic"
+        ]
+      },
+      "ice": {
+        "good": [
+          "fighting",
+          "rock",
+          "steel",
+          "fire"
+        ],
+        "bad": [
+          "ice"
+        ]
+      },
+      "dragon": {
+        "good": [
+          "ice",
+          "dragon",
+          "fairy"
+        ],
+        "bad": [
+          "fire",
+          "water",
+          "grass",
+          "electric"
+        ]
+      },
+      "dark": {
+        "good": [
+          "fighting",
+          "bug",
+          "fairy"
+        ],
+        "bad": [
+          "ghost",
+          "dark",
+          "psychic"
+        ]
+      },
+      "fairy": {
+        "good": [
+          "poison",
+          "steel"
+        ],
+        "bad": [
+          "fighting",
+          "bug",
+          "dark",
+          "dragon"
+        ]
+      },
+    };
+
+    const typeOrder = Object.keys(typeRelations);
 
     const typeIconUrl = (no) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-vii/lets-go-pikachu-lets-go-eevee/${no}.png`;
 
@@ -302,6 +533,10 @@
         [array[i], array[j]] = [array[j], array[i]];
       }
       return array;
+    }
+
+    function removeDuplicates(arr) {
+      return [...new Set(arr)];
     }
 
     function moveFirstElement(arr, targetIndex) {
@@ -329,8 +564,7 @@
       const allTypes = pokemon.types;
       const typeInfo = allTypes.map(({ type }) => ({
         icon: typeIconUrl(type.url.slice(-3, -1)),
-        name: typeKor[type.name],
-        url: type.url,
+        name: type.name,
       }));
 
       return {
@@ -341,36 +575,21 @@
     }
 
     async function getOptions(typeInfo) {
-      const targetTypeUrls = typeInfo.map(({ url }) => url);
-      const targetTypeInfos = await Promise.all(targetTypeUrls.map(url => fetch(url).then(response => response.json())));
+      const targetType = typeInfo.map(({ name }) => name);
 
-      const goodEffectTypes = targetTypeInfos
-        .map(type => type.damage_relations.double_damage_from)
-        .flat()
-        .map(type => ({
-          name: typeKor[type.name],
-          icon: typeIconUrl(type.url.slice(-3, -1)),
-        }));
-      const badEffectTypes = targetTypeInfos
-        .map(type => [...type.damage_relations.half_damage_from, ...type.damage_relations.no_damage_from])
-        .flat()
-        .map(type => ({
-          name: typeKor[type.name],
-          icon: typeIconUrl(type.url.slice(-3, -1)),
-        }));
+      const allGood = targetType.map((type) => typeRelations[type].good).flat();
+      const allBad = targetType.map((type) => typeRelations[type].bad).flat();
+      const answerList = removeDuplicates(allGood.filter((type) => !allBad.includes(type)));
+      const answerType = pickByRandom(answerList);
+      const optionTypes = shuffle(typeOrder.filter((type) => !answerList.includes(type))).slice(0, 5);
 
-      const answerType = pickByRandom(goodEffectTypes);
-      const wrongTypes = shuffle(
-        badEffectTypes.filter(bad => !goodEffectTypes.find(good => good.name === bad.name)),
-      ).slice(0, 6);
-      const allTypes = [answerType, ...wrongTypes];
-      const answer = getRandomNo(allTypes.length);
-      const options = moveFirstElement(allTypes, answer - 1);
+      const answer = getRandomNo(optionTypes.length + 1);
+      const options = moveFirstElement([answerType, ...optionTypes], answer - 1);
 
       return {
         answer,
         options,
-        goodEffectTypes,
+        goodEffectTypes: answerList,
       };
     }
 
@@ -378,14 +597,26 @@
       document.querySelector('.loading').classList.toggle('hide');
     }
 
-    async function makeQuestion() {
+    function reset() {
       if (document.querySelector('.image-grid').innerHTML) {
         document.querySelector('.image-grid').innerHTML = '';
       }
 
-      const typeNo = getRandomNo(19);
+      if (document.querySelector('.target-type1')) {
+        document.querySelector('.target-type1').remove();
+      }
+
+      if (document.querySelector('.target-type2')) {
+        document.querySelector('.target-type2').remove();
+      }
+    }
+
+    async function makeQuestion() {
+      reset();
+
+      const typeNo = getRandomNo(1000);
       const { image, name: targetPokemonName, typeInfo } = await getPokemonInfo(typeNo);
-      const typeList = typeInfo.map(({ name }) => name).join(', ');
+      const targetTypes = typeInfo.map(({ name }) => typeKor[name]).join(', ');
 
       document.getElementById('targetPokemon').style.backgroundImage = `url(${image})`;
       document.getElementById('targetName').innerText = `${targetPokemonName}(이)가 나타났다.`;
@@ -400,12 +631,15 @@
 
       const frag = document.createDocumentFragment();
 
-      options.forEach(({ name, icon }, index) => {
+      options.forEach((type, index) => {
+        const iconNo = typeOrder.indexOf(type) + 1;
+        const icon = typeIconUrl(iconNo);
+
         const div = document.createElement('div');
         div.classList.add('image-item');
         div.innerHTML = `
           <img src=${icon}>
-          <p>${name}</p>
+          <p>${typeKor[type]}</p>
         `;
         div.addEventListener('click', async () => {
           if (index + 1 === answer) {
@@ -413,8 +647,8 @@
           } else {
             document.querySelector('.bad_result').classList.remove('hide');
             document.querySelector('#bad_reason').innerHTML = `
-            ${targetPokemonName}은<br><strong class="type_empth">${typeList}</strong> 속성이다.<br><br>
-            <strong class="type_empth">${goodEffectTypes.map(type => type.name).join(', ')}</strong> 속성으로<br>공격하자.
+            ${targetPokemonName}은<br><strong class="type_empth">${targetTypes}</strong> 속성이다.<br><br>
+            <strong class="type_empth">${goodEffectTypes.map(type => typeKor[type]).join(', ')}</strong><br>속성으로 공격하자.
           `;
           }
         });
